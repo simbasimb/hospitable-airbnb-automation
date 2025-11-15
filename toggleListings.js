@@ -85,15 +85,34 @@ function getDesiredAction() {
     await page.goto('https://my.hospitable.com/user/hello');    await page.waitForTimeout(2000);
         
     // Fill login form
-    await page.fill('input[type="email"]', process.env.HOSPITABLE_EMAIL);
-    await page.fill('input[type="password"]', process.env.HOSPITABLE_PASSWORD);
-    await page.click('button:has-text("Login")');
-    await page.waitForNavigation({ waitUntil: 'networkidle', timeout: 30000 });
-        
-    await page.click('nav >> text=Properties');
-    await page.waitForTimeout(2000);
-
+        // Wait for email field to be ready
+    await page.waitForSelector('input[type="email"]', { state: 'visible' });
     
+    // Type email (type triggers input events unlike fill)
+    await page.type('input[type="email"]', process.env.HOSPITABLE_EMAIL);
+    await page.waitForTimeout(500);
+    
+    // Type password
+    await page.type('input[type="password"]', process.env.HOSPITABLE_PASSWORD);
+    await page.waitForTimeout(500);
+    
+    // Click login button and wait
+    await page.click('button[type="submit"]');
+    
+    // Wait for either Properties nav link OR device confirmation message
+    try {
+      await page.waitForSelector('nav >> text=Properties', { timeout: 10000 });
+      console.log('[INFO] Login successful - Properties page loaded');
+    } catch (e) {
+      // Check if device confirmation is needed
+      const pageContent = await page.textContent('body');
+      if (pageContent.includes('device') || pageContent.includes('email') || pageContent.includes('confirm')) {
+        console.log('[INFO] Device confirmation may be required - check your email');
+        throw new Error('Device confirmation required - please check email and approve login');
+      }
+      throw e;
+    }
+
     
     let successCount = 0;
     

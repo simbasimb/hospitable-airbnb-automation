@@ -85,8 +85,24 @@ const listingActions = [
     await context.tracing.stop({ path: `trace-success-${Date.now()}.zip` });
     await browser.close();
     console.log('\n[DONE] All actions completed!');
+
+      // Save status to file
+  const fs = require('fs');
+  const statusData = {
+    lastRun: new Date().toISOString(),
+    status: 'Success',
+    listingsProcessed: listingActions.length
+  };
+  fs.writeFileSync('status.json', JSON.stringify(statusData, null, 2));
     
   } catch (error) {
     await handleError(error, 'main-flow');
+      const fs = require('fs');
+  const statusData = {
+    lastRun: new Date().toISOString(),
+    status: 'Failed',
+    error: error.message
+  };
+  fs.writeFileSync('status.json', JSON.stringify(statusData, null, 2));
   }
 })();

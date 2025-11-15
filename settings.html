@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospitable Automation Settings</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="time"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="time"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .timezone-badge {
+            background: #667eea;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: #f5f7fa;
+            border-radius: 8px;
+        }
+        
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .checkbox-wrapper label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .save-btn {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .save-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .back-btn {
+            background: #666;
+            color: white;
+        }
+        
+        .back-btn:hover {
+            background: #555;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 102, 102, 0.3);
+        }
+        
+        .schedule-card {
+            background: #f5f7fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .schedule-card h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        
+        .schedule-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .schedule-item:last-child {
+            border-bottom: none;
+        }
+        
+        .schedule-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .schedule-value {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .success-message {
+            background: #4CAF50;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .success-message.show {
+            display: flex;
+        }
+        
+        .weekend-info {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="successMessage" class="success-message">
+            <span>✓</span>
+            <span>Settings saved successfully!</span>
+        </div>
+        
+        <div class="card">
+            <h1>⚙️ Automation Settings</h1>
+            <p class="subtitle">Configure your Airbnb listing automation schedule in Pacific Standard Time (PST)</p>
+            
+            <div class="form-group">
+                <label for="listTime">Daily List Time</label>
+                <div class="input-wrapper">
+                    <input type="time" id="listTime" value="18:00">
+                    <span class="timezone-badge">PST</span>
+                </div>
+                <p style="color: #666; font-size: 13px; margin-top: 5px;">Time to automatically list all properties each day</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="unlistTime">Daily Unlist Time</label>
+                <div class="input-wrapper">
+                    <input type="time" id="unlistTime" value="08:00">
+                    <span class="timezone-badge">PST</span>
+                </div>
+                <p style="color: #666; font-size: 13px; margin-top: 5px;">Time to automatically unlist all properties each day</p>
+            </div>
+            
+            <div class="form-group">
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" id="weekendMode" checked>
+                    <label for="weekendMode">Enable Weekend Mode</label>
+                </div>
+                <div class="weekend-info">
+                    <strong>Weekend Mode:</strong> All listings remain active from Friday 6:00 PM PST until Monday 8:00 AM PST. During this period, listings will NOT be unlisted.
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="save-btn" onclick="saveSettings()">💾 Save Settings</button>
+                <button class="back-btn" onclick="window.location.href='index.html'">← Back to Dashboard</button>
+            </div>
+        </div>
+        
+        <div class="card schedule-card">
+            <h2>📅 Current Schedule</h2>
+            <div class="schedule-item">
+                <span class="schedule-label">Weekday List Time:</span>
+                <span class="schedule-value" id="displayListTime">6:00 PM PST</span>
+            </div>
+            <div class="schedule-item">
+                <span class="schedule-label">Weekday Unlist Time:</span>
+                <span class="schedule-value" id="displayUnlistTime">8:00 AM PST</span>
+            </div>
+            <div class="schedule-item">
+                <span class="schedule-label">Weekend Mode:</span>
+                <span class="schedule-value" id="displayWeekendMode">Enabled</span>
+            </div>
+            <div class="schedule-item">
+                <span class="schedule-label">Weekend Schedule:</span>
+                <span class="schedule-value">Friday 6:00 PM - Monday 8:00 AM PST</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Load settings on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+        });
+        
+        function loadSettings() {
+            // Load from localStorage
+            const settings = {
+                listTime: localStorage.getItem('listTime') || '18:00',
+                unlistTime: localStorage.getItem('unlistTime') || '08:00',
+                weekendMode: localStorage.getItem('weekendMode') !== 'false'
+            };
+            
+            // Set form values
+            document.getElementById('listTime').value = settings.listTime;
+            document.getElementById('unlistTime').value = settings.unlistTime;
+            document.getElementById('weekendMode').checked = settings.weekendMode;
+            
+            // Update display
+            updateDisplay();
+        }
+        
+        function saveSettings() {
+            const listTime = document.getElementById('listTime').value;
+            const unlistTime = document.getElementById('unlistTime').value;
+            const weekendMode = document.getElementById('weekendMode').checked;
+            
+            // Save to localStorage
+            localStorage.setItem('listTime', listTime);
+            localStorage.setItem('unlistTime', unlistTime);
+            localStorage.setItem('weekendMode', weekendMode);
+            
+            // Update display
+            updateDisplay();
+            
+            // Show success message
+            const successMsg = document.getElementById('successMessage');
+            successMsg.classList.add('show');
+            
+            setTimeout(() => {
+                successMsg.classList.remove('show');
+            }, 3000);
+        }
+        
+        function updateDisplay() {
+            const listTime = document.getElementById('listTime').value;
+            const unlistTime = document.getElementById('unlistTime').value;
+            const weekendMode = document.getElementById('weekendMode').checked;
+            
+            // Convert 24h to 12h format
+            document.getElementById('displayListTime').textContent = formatTime(listTime) + ' PST';
+            document.getElementById('displayUnlistTime').textContent = formatTime(unlistTime) + ' PST';
+            document.getElementById('displayWeekendMode').textContent = weekendMode ? 'Enabled' : 'Disabled';
+        }
+        
+        function formatTime(time24) {
+            const [hours, minutes] = time24.split(':');
+            const hour = parseInt(hours);
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const hour12 = hour % 12 || 12;
+            return `${hour12}:${minutes} ${ampm}`;
+        }
+    </script>
+</body>
+</html>

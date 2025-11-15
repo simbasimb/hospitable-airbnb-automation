@@ -1,0 +1,16 @@
+{
+  "name": "hospitable-airbnb-automation",
+  "version": "1.0.0",
+  "description": "Automates listing/unlisting Airbnb listings in Hospitable using Playwright.",
+  "main": "toggleListings.js",
+  "scripts": {
+    "toggle:listings": "node toggleListings.js",
+    "print:dom": "node printDom.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.43.1",
+    "dotenv": "^16.3.1"
+  }
+}

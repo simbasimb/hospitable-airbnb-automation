@@ -128,11 +128,95 @@ function getDesiredAction() {
     } catch (e) {
       // Check if device confirmation is needed
       const pageContent = await page.textContent('body');
-      if (pageContent.includes('device') || pageContent.includes('email') || pageContent.includes('confirm')) {
-        console.log('[INFO] Device confirmation may be required - check your email');
-        throw new Error('Device confirmation required - please check email and approve login');
-      }
-      throw e;
+if (pageContent.includes('device') || pageContent.includes('email') || pageContent.includes('confirm')) {
+        console.log('[INFO] Device confirmation detected - initiating GitHub Issue workflow');
+        
+        // Post comment to GitHub Issue #1
+        const issueNumber = 1;
+        const repo = process.env.GITHUB_REPOSITORY || 'simbasimb/hospitable-airbnb-automation';
+        const token = process.env.GITHUB_TOKEN;
+        
+        console.log('[INFO] Posting request for magic link to Issue #1');
+        
+        // Post comment requesting magic link
+        const commentBody = `⚠️ Device confirmation required!\n\nPlease check your email and paste the magic link here.\n\nExpected format: \`https://my.hospitable.com/user/email-login/[TOKEN]\``;
+        
+        try {
+          const postResponse = await fetch(`https://api.github.com/repos/${repo}/issues/${issueNumber}/comments`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/vnd.github+json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ body: commentBody })
+          });
+          
+          if (postResponse.ok) {
+            console.log('[INFO] Successfully posted comment to Issue #1');
+          } else {
+            console.log('[WARN] Failed to post comment:', await postResponse.text());
+          }
+        } catch (err) {
+          console.log('[ERROR] Error posting comment:', err.message);
+        }
+        
+        // Poll Issue #1 comments for magic link
+        console.log('[INFO] Polling Issue #1 for magic link (2 minute timeout)');
+        const startTime = Date.now();
+        const timeoutMs = 120000; // 2 minutes
+        let magicLink = null;
+        
+        while (Date.now() - startTime < timeoutMs) {
+          try {
+            const response = await fetch(`https://api.github.com/repos/${repo}/issues/${issueNumber}/comments`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github+json'
+              }
+            });
+            
+            if (response.ok) {
+              const comments = await response.json();
+              
+              // Look for magic link in comments
+              for (const comment of comments) {
+                const match = comment.body.match(/https:\/\/my\.hospitable\.com\/user\/email-login\/[^\s]+/);
+                if (match) {
+                  magicLink = match[0];
+                  console.log('[INFO] Found magic link in Issue #1!');
+                  break;
+                }
+              }
+              
+              if (magicLink) break;
+            }
+          } catch (err) {
+            console.log('[WARN] Error fetching comments:', err.message);
+          }
+          
+          // Wait 10 seconds before checking again
+          await new Promise(resolve => setTimeout(resolve, 10000));
+        }
+        
+        if (magicLink) {
+          console.log('[INFO] Navigating to magic link to authenticate session');
+          await page.goto(magicLink, { waitUntil: 'networkidle' });
+          await page.waitForTimeout(3000);
+          
+          // Check if we're now logged in
+          const finalUrl = page.url();
+          console.log('[DEBUG] After magic link navigation - URL:', finalUrl);
+          
+          if (finalUrl.includes('/dashboard') || finalUrl.includes('/properties')) {
+            console.log('[INFO] Successfully authenticated via magic link!');
+          } else {
+            console.log('[WARN] Magic link navigation completed but not on dashboard');
+          }
+        } else {
+          throw new Error('Timeout waiting for magic link - no link found in Issue #1 after 2 minutes');
+        }
+      }      throw e;
     }
 
     

@@ -96,7 +96,30 @@ function getDesiredAction() {
     await page.waitForTimeout(1000);
 
     // Submit form by pressing Enter instead of clicking button
-    await page.press('input[type="password"]', 'Enter');    
+    await page.press('input[type="password"]', 'Enter');
+
+    // Wait for page to respond to form submission
+    await page.waitForTimeout(3000);
+    
+    // Log current URL and page title for debugging
+    const currentUrl = page.url();
+    const pageTitle = await page.title();
+    console.log(`[DEBUG] After login attempt - URL: ${currentUrl}`);
+    console.log(`[DEBUG] After login attempt - Title: ${pageTitle}`);
+    
+    // Get the full page text to see what messages are displayed
+    const fullPageText = await page.textContent('body');
+    console.log('[DEBUG] Page content after login:');
+    console.log(fullPageText.substring(0, 500)); // Log first 500 chars
+    
+    // Check for specific error messages
+    if (fullPageText.toLowerCase().includes('incorrect') || fullPageText.toLowerCase().includes('invalid')) {
+      console.log('[ERROR] Login failed - incorrect credentials detected');
+      throw new Error('Incorrect email or password');
+    }
+    if (fullPageText.toLowerCase().includes('password') && currentUrl.includes('/user/hello')) {
+      console.log('[ERROR] Still on login page - login may have failed');
+    }    
     
     // Wait for either Properties nav link OR device confirmation message
     try {

@@ -89,15 +89,14 @@ function getDesiredAction() {
     await page.waitForSelector('input[type="email"]', { state: 'visible' });
     
     // Type email (type triggers input events unlike fill)
-    await page.type('input[type="email"]', process.env.HOSPITABLE_EMAIL);
-    await page.waitForTimeout(500);
+    await page.type('input[type="email"]', process.env.HOSPITABLE_EMAIL, { delay: 100 });
     
     // Type password
-    await page.type('input[type="password"]', process.env.HOSPITABLE_PASSWORD);
-    await page.waitForTimeout(500);
-    
-    // Click login button and wait
-    await page.click('button[type="submit"]');
+    await page.type('input[type="password"]', process.env.HOSPITABLE_PASSWORD, { delay: 100 });
+    await page.waitForTimeout(1000);
+
+    // Submit form by pressing Enter instead of clicking button
+    await page.press('input[type="password"]', 'Enter');    
     
     // Wait for either Properties nav link OR device confirmation message
     try {

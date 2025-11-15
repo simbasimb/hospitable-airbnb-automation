@@ -1,0 +1,41 @@
+name: Hospitable Listing Automation
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 11 * * *'  # 3 AM Vancouver time (PST/PDT UTC-8/-7)
+
+jobs:
+  toggle-listings:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+      
+      - name: Run automation
+        env:
+          HOSPITABLE_EMAIL: ${{ secrets.HOSPITABLE_EMAIL }}
+          HOSPITABLE_PASSWORD: ${{ secrets.HOSPITABLE_PASSWORD }}
+        run: node toggleListings.js
+      
+      - name: Upload error artifacts
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: error-artifacts
+          path: |
+            error-*.png
+            trace-*.zip
+          if-no-files-found: ignore

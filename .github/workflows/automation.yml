@@ -2,8 +2,22 @@ name: Hospitable Listing Automation
 
 on:
   workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - toggle
+          - list
+          - unlist
+  repository_dispatch:
+    types:
+      - manual-list
+      - manual-unlist
   schedule:
-    - cron: '0 11 * * *'  # 3 AM Vancouver time (PST/PDT UTC-8/-7)
+    - cron: '0 2 * * *'   # 6 PM PST (2 AM UTC next day) - List all
+    - cron: '0 16 * * *'  # 8 AM PST (4 PM UTC) - Unlist all
 
 jobs:
   toggle-listings:
@@ -24,13 +38,39 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium
       
+      - name: Determine action
+        id: action
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            if [ "${{ github.event.action }}" = "manual-list" ]; then
+              echo "action=list" >> $GITHUB_OUTPUT
+            elif [ "${{ github.event.action }}" = "manual-unlist" ]; then
+              echo "action=unlist" >> $GITHUB_OUTPUT
+            fi
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "action=${{ github.event.inputs.action }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            # Determine if it's list or unlist time based on hour
+            HOUR=$(date -u +%H)
+            if [ "$HOUR" = "02" ]; then
+              echo "action=list" >> $GITHUB_OUTPUT
+            elif [ "$HOUR" = "16" ]; then
+              echo "action=unlist" >> $GITHUB_OUTPUT
+            else
+              echo "action=toggle" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "action=toggle" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Run automation
         env:
           HOSPITABLE_EMAIL: ${{ secrets.HOSPITABLE_EMAIL }}
           HOSPITABLE_PASSWORD: ${{ secrets.HOSPITABLE_PASSWORD }}
+          ACTION: ${{ steps.action.outputs.action }}
         run: node toggleListings.js
-
-              - name: Commit status update
+      
+      - name: Commit status update
         if: always()
         run: |
           git config user.name "GitHub Actions"

@@ -20,6 +20,10 @@ on:
     - cron: '0 16 * * *'  # 8 AM PST (4 PM UTC) - Unlist all
 
 jobs:
+
+permissions:
+  issues: write
+  contents: read
   toggle-listings:
     runs-on: ubuntu-latest
     

@@ -29,6 +29,15 @@ jobs:
           HOSPITABLE_EMAIL: ${{ secrets.HOSPITABLE_EMAIL }}
           HOSPITABLE_PASSWORD: ${{ secrets.HOSPITABLE_PASSWORD }}
         run: node toggleListings.js
+
+              - name: Commit status update
+        if: always()
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add status.json
+          git commit -m "Update status [skip ci]" || echo "No changes to commit"
+          git push
       
       - name: Upload error artifacts
         if: failure()

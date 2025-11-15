@@ -1,6 +1,6 @@
 # Hospitable Airbnb Listing Automation
 
-Automatically list or unlist your Airbnb properties in Hospitable using GitHub Actions.
+Automatically list or unlist your Airbnb properties in Hospitable using GitHub Actions. 
 
 ## Setup Instructions
 

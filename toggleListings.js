@@ -82,22 +82,20 @@ function getDesiredAction() {
   try {
     await context.tracing.start({ screenshots: true, snapshots: true });
     console.log('[INFO] Navigating to Hospitable...');
-    await page.goto('https://my.hospitable.com/login');
-    await page.waitForTimeout(2000);
-    
-    const alreadyLoggedIn = await page.$('nav >> text=Properties');
-    if (!alreadyLoggedIn) {
-      await page.fill('input[type="email"]', process.env.HOSPITABLE_EMAIL);
-      await page.fill('input[type="password"]', process.env.HOSPITABLE_PASSWORD);
-      await page.click('button:has-text("Sign In")');
-      await page.waitForNavigation({ waitUntil: 'networkidle' });
-    }
-    
+    await page.goto('https://my.hospitable.com/user/hello');    await page.waitForTimeout(2000);
+        
+    // Fill login form
+    await page.fill('input[type="email"]', process.env.HOSPITABLE_EMAIL);
+    await page.fill('input[type="password"]', process.env.HOSPITABLE_PASSWORD);
+    await page.click('button:has-text("Login")');
+    await page.waitForNavigation({ waitUntil: 'networkidle', timeout: 30000 });
+        
     await page.click('nav >> text=Properties');
     await page.waitForTimeout(2000);
+
+    
     
     let successCount = 0;
-    let failureCount = 0;
     
     for (let actionItem of listingActions) {
       try {

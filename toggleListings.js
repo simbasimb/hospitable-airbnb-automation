@@ -16,7 +16,7 @@ function isWeekendMode() {
   const now = new Date();
   // Convert to PST (UTC-8)
   const pstOffset = -8 * 60; // PST is UTC-8
-  const pstTime = new Date(now.getTime() + (pstOffset * 60 * 1000) + (now.getTimezoneOffset() * 60 * 1000));
+  const pstTime = new Date(now.getTime() + (pstOffset + now.getTimezoneOffset()) * 60 * 1000));
   
   const day = pstTime.getDay(); // 0=Sunday, 5=Friday, 1=Monday
   const hour = pstTime.getHours();
@@ -27,7 +27,7 @@ function isWeekendMode() {
   // All of Saturday (day 6)
   if (day === 6) return true;
   
-  // All of Sunday (day 0)  
+  // All of Sunday (day 0)
   if (day === 0) return true;
   
   // Monday before 8 AM
@@ -36,259 +36,200 @@ function isWeekendMode() {
   return false;
 }
 
-// Determine what action to take
-function getDesiredAction() {
-  // If weekend mode is enabled and it's currently weekend, always list
+// Determine the action based on weekend mode or explicit ACTION
+function determineAction() {
+  // If we're in weekend mode, always list
   if (isWeekendMode()) {
     console.log('[INFO] Weekend mode active - keeping all listings published');
     return 'list';
   }
   
-  // Otherwise use the ACTION from environment
+  // Otherwise, use the ACTION from the workflow
+  console.log(`[INFO] Running with action: ${ACTION}`);
   return ACTION;
 }
 
 (async () => {
-  const desiredAction = getDesiredAction();
-  console.log(`[INFO] Running with action: ${desiredAction}`);
+  const action = determineAction();
   
-  // Create listing actions array based on desired action
-  const listingActions = PROPERTIES.map(prop => ({
-    ...prop,
-    action: desiredAction
-  }));
+  // Determine what to do based on action
+  const listingActions = [];
   
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  
-  async function handleError(error, stepName) {
-    console.error(`[ERROR] at ${stepName}:`, error);
-    await page.screenshot({ path: `error-${Date.now()}.png`, fullPage: true });
-    await context.tracing.stop({ path: `trace-${Date.now()}.zip` });
-    await browser.close();
-    
-    const statusData = {
-      lastRun: new Date().toISOString(),
-      status: 'Failed',
-      error: error.message,
-      action: desiredAction,
-      isWeekend: isWeekendMode()
-    };
-    fs.writeFileSync('status.json', JSON.stringify(statusData, null, 2));
+  if (action === 'list') {
+    // List all properties
+    for (const prop of PROPERTIES) {
+      listingActions.push({ ...prop, action: 'list' });
+    }
+  } else if (action === 'unlist') {
+    // Unlist all properties
+    for (const prop of PROPERTIES) {
+      listingActions.push({ ...prop, action: 'unlist' });
+    }
+  } else {
+    console.log('[ERROR] Unknown action:', action);
     process.exit(1);
   }
   
+  console.log(`[INFO] Starting automation - Action: ${action}`);
+  
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  
+  // Navigate to login page
+  console.log('[INFO] Navigating to Hospitable...');
+  await page.goto('https://my.hospitable.com/user/hello', { waitUntil: 'networkidle' });
+  
+  // Fill in login credentials
+  console.log('[INFO] Entering credentials...');
+  await page.fill('input[type="email"]', process.env.HOSPITABLE_EMAIL);
+  await page.waitForTimeout(500); // Small delay for form validation
+  await page.fill('input[type="password"]', process.env.HOSPITABLE_PASSWORD);
+  await page.waitForTimeout(500); // Small delay for form validation
+  
+  // Submit login form
+  console.log('[INFO] Submitting login form...');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(3000); // Wait for response
+  
+  // Log current URL and page title for debugging
+  const currentUrl = page.url();
+  const pageTitle = await page.title();
+  console.log(`[DEBUG] After login attempt - URL: ${currentUrl}`);
+  console.log(`[DEBUG] After login attempt - Title: ${pageTitle}`);
+  
+  // Get the full page text to see what messages are displayed
+  const fullPageText = await page.textContent('body');
+  console.log('[DEBUG] Page content after login:');
+  console.log(fullPageText.substring(0, 500)); // Log first 500 chars
+  
+  // Check for specific error messages
+  if (fullPageText.toLowerCase().includes('incorrect') || fullPageText.toLowerCase().includes('invalid')) {
+    console.log('[ERROR] Login failed - incorrect credentials detected');
+    throw new Error('Incorrect email or password');
+  }
+  if (fullPageText.toLowerCase().includes('password') && currentUrl.includes('/user/hello')) {
+    console.log('[ERROR] Still on login page - login may have failed');
+  }
+  
+  // Wait for either Properties nav link OR device confirmation message
   try {
-    await context.tracing.start({ screenshots: true, snapshots: true });
-    console.log('[INFO] Navigating to Hospitable...');
-    await page.goto('https://my.hospitable.com/user/hello');    await page.waitForTimeout(2000);
-        
-    // Fill login form
-        // Wait for email field to be ready
-    await page.waitForSelector('input[type="email"]', { state: 'visible' });
+    await page.waitForSelector('nav >> text=Properties', { timeout: 10000 });
+    console.log('[INFO] Login successful - Properties page loaded');
+  } catch (e) {
+    // Check if device confirmation is needed
+    const pageContent = await page.textContent('body');
     
-    // Type email (type triggers input events unlike fill)
-    await page.type('input[type="email"]', process.env.HOSPITABLE_EMAIL, { delay: 100 });
-    
-    // Type password
-    await page.type('input[type="password"]', process.env.HOSPITABLE_PASSWORD, { delay: 100 });
-    await page.waitForTimeout(1000);
-
-    // Submit form by pressing Enter instead of clicking button
-    await page.press('input[type="password"]', 'Enter');
-
-    // Wait for page to respond to form submission
-    await page.waitForTimeout(3000);
-    
-    // Log current URL and page title for debugging
-    const currentUrl = page.url();
-    const pageTitle = await page.title();
-    console.log(`[DEBUG] After login attempt - URL: ${currentUrl}`);
-    console.log(`[DEBUG] After login attempt - Title: ${pageTitle}`);
-    
-    // Get the full page text to see what messages are displayed
-    const fullPageText = await page.textContent('body');
-    console.log('[DEBUG] Page content after login:');
-    console.log(fullPageText.substring(0, 500)); // Log first 500 chars
-    
-    // Check for specific error messages
-    if (fullPageText.toLowerCase().includes('incorrect') || fullPageText.toLowerCase().includes('invalid')) {
-      console.log('[ERROR] Login failed - incorrect credentials detected');
-      throw new Error('Incorrect email or password');
-    }
-    if (fullPageText.toLowerCase().includes('password') && currentUrl.includes('/user/hello')) {
-      console.log('[ERROR] Still on login page - login may have failed');
-    }    
-    
-    // Wait for either Properties nav link OR device confirmation message
-    try {
-      await page.waitForSelector('nav >> text=Properties', { timeout: 10000 });
-      console.log('[INFO] Login successful - Properties page loaded');
-    } catch (e) {
-      // Check if device confirmation is needed
-      const pageContent = await page.textContent('body');
-if (pageContent.includes('device') || pageContent.includes('email') || pageContent.includes('confirm')) {
-        console.log('[INFO] Device confirmation detected - initiating GitHub Issue workflow');
+    if (pageContent.includes('device') || pageContent.includes('email') || pageContent.includes('confirm')) {
+      console.log('[INFO] Device confirmation detected');
+      console.log('[DEBUG] Page content contains device/email/confirm keywords');
+      
+      // Check if we have a confirmation link in the file
+      try {
+        const confirmationData = JSON.parse(fs.readFileSync('confirmationLink.json', 'utf8'));
+        const magicLink = confirmationData.confirmationLink;
         
-        // Post comment to GitHub Issue #1
-        const issueNumber = 1;
-        const repo = process.env.GITHUB_REPOSITORY || 'simbasimb/hospitable-airbnb-automation';
-        const token = process.env.GITHUB_TOKEN;
-        
-        console.log('[INFO] Posting request for magic link to Issue #1');
-        
-        // Post comment requesting magic link
-        const commentBody = `⚠️ Device confirmation required!\n\nPlease check your email and paste the magic link here.\n\nExpected format: \`https://my.hospitable.com/user/email-login/[TOKEN]\``;
-        
-        try {
-          const postResponse = await fetch(`https://api.github.com/repos/${repo}/issues/${issueNumber}/comments`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Accept': 'application/vnd.github+json',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ body: commentBody })
-          });
-          
-          if (postResponse.ok) {
-            console.log('[INFO] Successfully posted comment to Issue #1');
-          } else {
-            console.log('[WARN] Failed to post comment:', await postResponse.text());
-          }
-        } catch (err) {
-          console.log('[ERROR] Error posting comment:', err.message);
-        }
-        
-        // Poll Issue #1 comments for magic link
-        console.log('[INFO] Polling Issue #1 for magic link (2 minute timeout)');
-        const startTime = Date.now();
-        const timeoutMs = 120000; // 2 minutes
-        let magicLink = null;
-        
-        while (Date.now() - startTime < timeoutMs) {
-          try {
-            const response = await fetch(`https://api.github.com/repos/${repo}/issues/${issueNumber}/comments`, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/vnd.github+json'
-              }
-            });
-            
-            if (response.ok) {
-              const comments = await response.json();
-              
-              // Look for magic link in comments
-              for (const comment of comments) {
-                const match = comment.body.match(/https:\/\/my\.hospitable\.com\/user\/email-login\/[^\s]+/);
-                if (match) {
-                  magicLink = match[0];
-                  console.log('[INFO] Found magic link in Issue #1!');
-                  break;
-                }
-              }
-              
-              if (magicLink) break;
-            }
-          } catch (err) {
-            console.log('[WARN] Error fetching comments:', err.message);
-          }
-          
-          // Wait 10 seconds before checking again
-          await new Promise(resolve => setTimeout(resolve, 10000));
-        }
-        
-        if (magicLink) {
+        if (magicLink && magicLink.startsWith('https://my.hospitable.com/user/email-login/')) {
+          console.log('[INFO] Found magic link in confirmationLink.json');
           console.log('[INFO] Navigating to magic link to authenticate session');
+          
+          // Navigate to the magic link
           await page.goto(magicLink, { waitUntil: 'networkidle' });
           await page.waitForTimeout(3000);
           
           // Check if we're now logged in
           const finalUrl = page.url();
-          console.log('[DEBUG] After magic link navigation - URL:', finalUrl);
+          console.log(`[DEBUG] After magic link navigation - URL: ${finalUrl}`);
           
           if (finalUrl.includes('/dashboard') || finalUrl.includes('/properties')) {
             console.log('[INFO] Successfully authenticated via magic link!');
+            
+            // Mark the link as used
+            confirmationData.used = true;
+            confirmationData.usedAt = new Date().toISOString();
+            fs.writeFileSync('confirmationLink.json', JSON.stringify(confirmationData, null, 2));
           } else {
             console.log('[WARN] Magic link navigation completed but not on dashboard');
           }
         } else {
-          throw new Error('Timeout waiting for magic link - no link found in Issue #1 after 2 minutes');
+          console.log('[ERROR] No valid magic link found in confirmationLink.json');
+          console.log('[ERROR] Please update confirmationLink.json with the magic link from your email');
+          console.log('[ERROR] Then rerun the workflow');
+          throw new Error('Device confirmation required - please provide magic link in confirmationLink.json');
         }
-      }      throw e;
+      } catch (err) {
+        console.log('[ERROR] Error reading confirmationLink.json:', err.message);
+        console.log('[ERROR] Please ensure confirmationLink.json exists and contains a valid magic link');
+        throw new Error('Device confirmation required - please provide magic link');
+      }
+    } else {
+      throw e;
     }
-
-    
-    let successCount = 0;
-    
-    for (let actionItem of listingActions) {
-      try {
-        console.log(`\n[INFO] Processing: ${actionItem.propertyName} - Action: ${actionItem.action}`);
-        await page.click(`text="${actionItem.propertyName}"`);
-        await page.waitForTimeout(2000);
-        
-        const listings = await page.$$('div:has(> img):has(> heading)');
-        let foundListing = false;
-        
-        for (const listing of listings) {
-          const textContent = await listing.textContent();
-          if (textContent.includes(actionItem.airbnbListingName) && textContent.includes('Entire Home')) {
-            foundListing = true;
-            const menuButton = await listing.$('button[aria-haspopup="menu"]');
-            await menuButton.click();
+  }
+  
+  let successCount = 0;
+  
+  for (let actionItem of listingActions) {
+    try {
+      console.log(`\n[INFO] Processing: ${actionItem.propertyName} - Action: ${actionItem.action}`);
+      await page.click(`text="${actionItem.propertyName}"`);
+      await page.waitForTimeout(2000);
+      
+      const listings = await page.$$('div:has(> img):has(> heading)');
+      let foundListing = false;
+      
+      for (const listing of listings) {
+        const textContent = await listing.textContent();
+        if (textContent.includes(actionItem.airbnbListingName) && textContent.includes('Entire Home')) {
+          foundListing = true;
+          
+          // Check if already in desired state
+          const isPaused = textContent.includes('Paused');
+          const isListed = textContent.includes('Listed');
+          
+          if (actionItem.action === 'list' && isListed) {
+            console.log(`[INFO] ${actionItem.airbnbListingName} is already listed - skipping`);
+            successCount++;
+            continue;
+          }
+          
+          if (actionItem.action === 'unlist' && isPaused) {
+            console.log(`[INFO] ${actionItem.airbnbListingName} is already paused - skipping`);
+            successCount++;
+            continue;
+          }
+          
+          // Toggle listing state
+          const toggleButton = await listing.$('button:has-text("Pause listing")');
+          if (toggleButton) {
+            await toggleButton.click();
             await page.waitForTimeout(1000);
             
-            const targetAction = actionItem.action === "list" ? "List" : "Unpublish listing";
-            await page.click(`text="${targetAction}"`);
-            await page.waitForTimeout(1500);
-            
-            const modal = await page.$('[role="dialog"]');
-            if (modal) {
-              const firstOption = await modal.$('input[type="radio"]:not([disabled])');
-              if (firstOption) await firstOption.click();
-              const confirmBtn = await modal.$('button:has-text("Confirm")');
-              if (confirmBtn) await confirmBtn.click();
-              await page.waitForTimeout(2000);
-            }
-            
-            console.log(`[SUCCESS] ${actionItem.action} completed for ${actionItem.propertyName}!`);
+            const actionText = actionItem.action === 'list' ? 'listed' : 'paused';
+            console.log(`[SUCCESS] ${actionItem.airbnbListingName} has been ${actionText}`);
             successCount++;
-            break;
+          } else {
+            console.log(`[WARN] Toggle button not found for ${actionItem.airbnbListingName}`);
           }
+          
+          break;
         }
-        
-        if (!foundListing) {
-          console.log(`[WARNING] Listing not found for ${actionItem.propertyName}`);
-          failureCount++;
-        }
-        
-        await page.click('text="Back"');
-        await page.waitForTimeout(1500);
-        
-      } catch (innerError) {
-        console.error(`[ERROR] Failed to process ${actionItem.propertyName}:`, innerError.message);
-        failureCount++;
       }
+      
+      if (!foundListing) {
+        console.log(`[WARN] Listing ${actionItem.airbnbListingName} not found on page`);
+      }
+      
+    } catch (error) {
+      console.log(`[ERROR] Failed to process ${actionItem.propertyName}:`, error.message);
     }
-    
-    await context.tracing.stop({ path: `trace-success-${Date.now()}.zip` });
-    await browser.close();
-    console.log(`\n[DONE] All actions completed! Success: ${successCount}, Failures: ${failureCount}`);
-    
-    // Save status to file
-    const statusData = {
-      lastRun: new Date().toISOString(),
-      status: failureCount === 0 ? 'Success' : 'Partial Success',
-      action: desiredAction,
-      isWeekend: isWeekendMode(),
-      listingsProcessed: successCount,
-      listingsFailed: failureCount,
-      totalListings: listingActions.length
-    };
-    fs.writeFileSync('status.json', JSON.stringify(statusData, null, 2));
-    
-  } catch (error) {
-    await handleError(error, 'main-flow');
+  }
+  
+  console.log(`\n[INFO] Automation complete - Successfully processed ${successCount}/${listingActions.length} listings`);
+  
+  await browser.close();
+  
+  if (successCount === 0 && listingActions.length > 0) {
+    console.log('[ERROR] No listings were successfully processed');
+    process.exit(1);
   }
 })();

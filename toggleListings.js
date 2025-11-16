@@ -230,7 +230,7 @@ function determineAction() {
           console.log('[ERROR] Could not retrieve verification link from Gmail');
           throw new Error('Device confirmation required - could not get magic link from Gmail');
                 }
-      } catch (err) {
+      catch (err) {
         console.log('[ERROR] Error reading confirmationLink.json:', err.message);
         console.log('[ERROR] Please ensure confirmationLink.json exists and contains a valid magic link');
         throw new Error('Device confirmation required - please provide magic link');

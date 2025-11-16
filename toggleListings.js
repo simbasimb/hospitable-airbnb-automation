@@ -229,43 +229,7 @@ function determineAction() {
         } else {
           console.log('[ERROR] Could not retrieve verification link from Gmail');
           throw new Error('Device confirmation required - could not get magic link from Gmail');
-        try {
-        const confirmationData = JSON.parse(fs.readFileSync('confirmationLink.json', 'utf8'));
-        const magicLink = confirmationData.confirmationLink;
-        
-        if (magicLink && magicLink.startsWith('https://my.hospitable.com/user/email-login/')) {
-          console.log('[INFO] Found magic link in confirmationLink.json');
-          console.log('[INFO] Navigating to magic link to authenticate session');
-          
-          // Navigate to the magic link
-          // Navigate to the magic link
-          await page.goto(magicLink, { waitUntil: 'networkidle' });
-          console.log('[INFO] Waiting for authentication to complete...');
-          await page.waitForTimeout(10000); // Wait 10 seconds for redirect
-          
-          // Check if we're now logged in
-          const finalUrl = page.url();
-          console.log(`[DEBUG] After magic link navigation - URL: ${finalUrl}`);
-          console.log(`[DEBUG] Checking for login success indicators...`);
-          
-          // Wait for either dashboard or properties to appear
-          try {
-            await page.waitForSelector('nav >> text=Properties', { timeout: 5000 });
-            console.log('[INFO] Successfully authenticated via magic link!');
-          } catch (e) {
-            console.log('[WARN] Properties nav link not found after magic link');
-            // Check if we're at least on a logged-in page
-            const bodyText = await page.textContent('body');
-            if (bodyText.includes('device') || bodyText.includes('confirm') || bodyText.includes('verify')) {
-              console.log('[ERROR] Still on device confirmation page - magic link may be invalid or expired');
-              throw new Error('Device confirmation required - magic link did not work');
-            }
-         else {
-          console.log('[ERROR] No valid magic link found in confirmationLink.json');
-          console.log('[ERROR] Please update confirmationLink.json with the magic link from your email');
-          console.log('[ERROR] Then rerun the workflow');
-          throw new Error('Device confirmation required - please provide magic link in confirmationLink.json');
-        }
+                }
       } catch (err) {
         console.log('[ERROR] Error reading confirmationLink.json:', err.message);
         console.log('[ERROR] Please ensure confirmationLink.json exists and contains a valid magic link');

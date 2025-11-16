@@ -133,23 +133,28 @@ function determineAction() {
           console.log('[INFO] Navigating to magic link to authenticate session');
           
           // Navigate to the magic link
+          // Navigate to the magic link
           await page.goto(magicLink, { waitUntil: 'networkidle' });
-          await page.waitForTimeout(3000);
+          console.log('[INFO] Waiting for authentication to complete...');
+          await page.waitForTimeout(10000); // Wait 10 seconds for redirect
           
           // Check if we're now logged in
           const finalUrl = page.url();
           console.log(`[DEBUG] After magic link navigation - URL: ${finalUrl}`);
+          console.log(`[DEBUG] Checking for login success indicators...`);
           
-          if (finalUrl.includes('/dashboard') || finalUrl.includes('/properties')) {
+          // Wait for either dashboard or properties to appear
+          try {
+            await page.waitForSelector('nav >> text=Properties', { timeout: 5000 });
             console.log('[INFO] Successfully authenticated via magic link!');
-            
-            // Mark the link as used
-            confirmationData.used = true;
-            confirmationData.usedAt = new Date().toISOString();
-            fs.writeFileSync('confirmationLink.json', JSON.stringify(confirmationData, null, 2));
-          } else {
-            console.log('[WARN] Magic link navigation completed but not on dashboard');
-          }
+          } catch (e) {
+            console.log('[WARN] Properties nav link not found after magic link');
+            // Check if we're at least on a logged-in page
+            const bodyText = await page.textContent('body');
+            if (bodyText.includes('device') || bodyText.includes('confirm') || bodyText.includes('verify')) {
+              console.log('[ERROR] Still on device confirmation page - magic link may be invalid or expired');
+              throw new Error('Device confirmation required - magic link did not work');
+            }
         } else {
           console.log('[ERROR] No valid magic link found in confirmationLink.json');
           console.log('[ERROR] Please update confirmationLink.json with the magic link from your email');

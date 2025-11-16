@@ -155,7 +155,7 @@ function determineAction() {
               console.log('[ERROR] Still on device confirmation page - magic link may be invalid or expired');
               throw new Error('Device confirmation required - magic link did not work');
             }
-        } else {
+         else {
           console.log('[ERROR] No valid magic link found in confirmationLink.json');
           console.log('[ERROR] Please update confirmationLink.json with the magic link from your email');
           console.log('[ERROR] Then rerun the workflow');
@@ -166,75 +166,5 @@ function determineAction() {
         console.log('[ERROR] Please ensure confirmationLink.json exists and contains a valid magic link');
         throw new Error('Device confirmation required - please provide magic link');
       }
-    } else {
-      throw e;
     }
-  }
-  
-  let successCount = 0;
-  
-  for (let actionItem of listingActions) {
-    try {
-      console.log(`\n[INFO] Processing: ${actionItem.propertyName} - Action: ${actionItem.action}`);
-      await page.click(`text="${actionItem.propertyName}"`);
-      await page.waitForTimeout(2000);
       
-      const listings = await page.$$('div:has(> img):has(> heading)');
-      let foundListing = false;
-      
-      for (const listing of listings) {
-        const textContent = await listing.textContent();
-        if (textContent.includes(actionItem.airbnbListingName) && textContent.includes('Entire Home')) {
-          foundListing = true;
-          
-          // Check if already in desired state
-          const isPaused = textContent.includes('Paused');
-          const isListed = textContent.includes('Listed');
-          
-          if (actionItem.action === 'list' && isListed) {
-            console.log(`[INFO] ${actionItem.airbnbListingName} is already listed - skipping`);
-            successCount++;
-            continue;
-          }
-          
-          if (actionItem.action === 'unlist' && isPaused) {
-            console.log(`[INFO] ${actionItem.airbnbListingName} is already paused - skipping`);
-            successCount++;
-            continue;
-          }
-          
-          // Toggle listing state
-          const toggleButton = await listing.$('button:has-text("Pause listing")');
-          if (toggleButton) {
-            await toggleButton.click();
-            await page.waitForTimeout(1000);
-            
-            const actionText = actionItem.action === 'list' ? 'listed' : 'paused';
-            console.log(`[SUCCESS] ${actionItem.airbnbListingName} has been ${actionText}`);
-            successCount++;
-          } else {
-            console.log(`[WARN] Toggle button not found for ${actionItem.airbnbListingName}`);
-          }
-          
-          break;
-        }
-      }
-      
-      if (!foundListing) {
-        console.log(`[WARN] Listing ${actionItem.airbnbListingName} not found on page`);
-      }
-      
-    } catch (error) {
-      console.log(`[ERROR] Failed to process ${actionItem.propertyName}:`, error.message);
-    }
-  }
-  
-  console.log(`\n[INFO] Automation complete - Successfully processed ${successCount}/${listingActions.length} listings`);
-  
-  await browser.close();
-  
-  if (successCount === 0 && listingActions.length > 0) {
-    console.log('[ERROR] No listings were successfully processed');
-    process.exit(1);
-  }
-})();

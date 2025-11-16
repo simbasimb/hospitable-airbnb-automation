@@ -242,6 +242,20 @@
                     <strong>Weekend Mode:</strong> All listings remain active from Friday 6:00 PM PST until Monday 8:00 AM PST. During this period, listings will NOT be unlisted.
                 </div>
             </div>
+
+                        <!-- Device Confirmation Section -->
+            <div class="card">
+                <h2>🔐 Device Confirmation</h2>
+                <div class="form-group">
+                    <label for="confirmationLink">Magic Link (One-time Device Confirmation)</label>
+                    <input type="url" id="confirmationLink" placeholder="Paste the magic link from your email here">
+                    <small style="color: #666; font-size: 14px; display: block; margin-top: 8px;">
+                        ⚠️ Only needed once! When the automation detects device confirmation is required, paste the magic link from your email here.
+                    </small>
+                </div>
+                <button class="save-btn" onclick="saveConfirmationLink()">💾 Save Confirmation Link</button>
+                <div id="confirmationStatus" style="margin-top: 10px; font-weight: bold;"></div>
+            </div>
             
             <div class="button-group">
                 <button class="save-btn" onclick="saveSettings()">💾 Save Settings</button>
@@ -313,6 +327,45 @@
             setTimeout(() => {
                 successMsg.classList.remove('show');
             }, 3000);
+        }
+
+                async function saveConfirmationLink() {
+            const link = document.getElementById('confirmationLink').value.trim();
+            const statusDiv = document.getElementById('confirmationStatus');
+            
+            if (!link) {
+                statusDiv.textContent = '❌ Please enter a magic link';
+                statusDiv.style.color = 'red';
+                return;
+            }
+            
+            if (!link.includes('my.hospitable.com/user/email-login/')) {
+                statusDiv.textContent = '❌ Invalid link format. Please paste the complete magic link from your email';
+                statusDiv.style.color = 'red';
+                return;
+            }
+            
+            statusDiv.textContent = '⏳ Saving link...';
+            statusDiv.style.color = 'orange';
+            
+            try {
+                // Create the JSON content
+                const data = {
+                    confirmationLink: link,
+                    timestamp: new Date().toISOString(),
+                    used: false
+                };
+                
+                // Save to GitHub via API (requires manual file creation first)
+                // For now, we'll use localStorage and display instructions
+                localStorage.setItem('confirmationLink', JSON.stringify(data));
+                
+                statusDiv.innerHTML = '✅ Link saved! Now create a file called <code>confirmationLink.json</code> in your repository with this content:<br><br><textarea style="width: 100%; height: 80px; font-family: monospace; font-size: 12px; padding: 8px; margin-top: 8px;" readonly>' + JSON.stringify(data, null, 2) + '</textarea><br><br>Copy this content and create the file manually in GitHub.';
+                statusDiv.style.color = 'green';
+            } catch (error) {
+                statusDiv.textContent = '❌ Error: ' + error.message;
+                statusDiv.style.color = 'red';
+            }
         }
         
         function updateDisplay() {

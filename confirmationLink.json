@@ -1,0 +1,6 @@
+{
+  "confirmationLink": "",
+  "timestamp": "",
+  "used": false,
+  "instructions": "When you receive the device confirmation email from Hospitable, paste the complete magic link in the confirmationLink field above, update the timestamp with current date/time, and save this file. The script will automatically use it during the next run."
+}

@@ -19,7 +19,7 @@ on:
     - cron: '0 2 * * *'   # 6 PM PST (2 AM UTC next day) - List all
     - cron: '0 16 * * *'  # 8 AM PST (4 PM UTC) - Unlist all
 
-  permissions:
+permissions:
   issues: write
   contents: read
 

@@ -16,7 +16,7 @@ function isWeekendMode() {
   const now = new Date();
   // Convert to PST (UTC-8)
   const pstOffset = -8 * 60; // PST is UTC-8
-  const pstTime = new Date(now.getTime() + (pstOffset + now.getTimezoneOffset()) * 60 * 1000));
+  const pstTime = new Date(now.getTime() + (pstOffset + now.getTimezoneOffset()) * 60 * 1000);
   
   const day = pstTime.getDay(); // 0=Sunday, 5=Friday, 1=Monday
   const hour = pstTime.getHours();

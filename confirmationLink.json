@@ -1,6 +1,6 @@
 {
-  "confirmationLink": "",
-  "timestamp": "",
+  "confirmationLink": "https://my.hospitable.com/user/email-login/ae89953b609f4b7790aa2915837dd333",
+  "timestamp": "2025-01-11T16:30:00-08:00",
   "used": false,
-  "instructions": "When you receive the device confirmation email from Hospitable, paste the complete magic link in the confirmationLink field above, update the timestamp with current date/time, and save this file. The script will automatically use it during the next run."
+  "instructions": "When you receive the device confirmation email from Hospitable, paste the complete magic link in the confirmationLink field above, update the timestamp with current date/time, and commit this file. The script will read this link on the next workflow run."
 }

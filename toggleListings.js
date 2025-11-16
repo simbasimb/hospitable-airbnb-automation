@@ -231,4 +231,6 @@ function determineAction() {
           throw new Error('Device confirmation required - could not get magic link from Gmail');
                 }
     }
+  }
+})();
       

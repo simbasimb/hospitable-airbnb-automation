@@ -49,8 +49,7 @@ async function getVerificationLinkFromGmail(browser) {
     
     // Search for Hospitable verification email
     console.log('[INFO] Searching for Hospitable verification email...');
-    await gmailPage.fill('input[aria-label="Search mail"]', 'from:hello@hospitable.com device verification');
-    await gmailPage.waitForTimeout(500);
+    await gmailPage.fill('input[aria-label="Search mail"]', 'from:support@hospitable.com subject:"New login to Hospitable"');    await gmailPage.waitForTimeout(500);
     await gmailPage.keyboard.press('Enter');
     await gmailPage.waitForTimeout(3000);
     

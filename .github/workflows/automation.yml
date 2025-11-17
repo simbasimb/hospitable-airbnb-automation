@@ -1,5 +1,5 @@
 name: Hospitable Listing Automation
-# Test commit to verify YAML syntax is valid and test full workflow
+# Test commit to verify YAML syntax is valid and test full workflow - Testing YAML fix
 
 on:
   workflow_dispatch:

@@ -1,4 +1,5 @@
 name: Hospitable Listing Automation
+# Test commit to verify YAML syntax is valid
 
 on:
   workflow_dispatch:

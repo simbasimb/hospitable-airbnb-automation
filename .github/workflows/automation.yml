@@ -75,7 +75,7 @@ jobs:
           HOSPITABLE_PASSWORD: ${{ secrets.HOSPITABLE_PASSWORD }}
           ACTION: ${{ steps.action.outputs.action }}
           GMAIL_EMAIL: ${{ secrets.GMAIL_EMAIL }}                        
-                    GMAIL_PASSWORD: ${{ secrets.GMAIL_PASSWORD }}
+                                GMAIL_PASSWORD: ${{ secrets.GMAIL_PASSWORD }}
         run: node toggleListings.js
       
       - name: Commit status update
